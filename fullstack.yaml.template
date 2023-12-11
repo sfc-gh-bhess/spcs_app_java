@@ -1,0 +1,19 @@
+spec:
+  containers:
+    - name: eaj-frontend
+      image: <<REPOSITORY>>/eaj-frontend
+      env:
+        VUE_APP_API_URL: /api
+    - name: eaj-backend
+      image: <<REPOSITORY>>/eaj-backend
+      env:
+        SNOWFLAKE_WAREHOUSE: <<WAREHOUSE>>
+    - name: eaj-router
+      image: <<REPOSITORY>>/eaj-router
+      env:
+        FE_SERVER: localhost:8080
+        BE_SERVER: localhost:8081
+  endpoints:
+    - name: app
+      port: 8000
+      public: true
