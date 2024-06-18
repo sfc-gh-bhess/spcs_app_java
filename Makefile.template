@@ -1,7 +1,7 @@
 REPO?=<<REPOSITORY>>
-BACKEND_IMAGE=eaj-backend
-FRONTEND_IMAGE=eaj-frontend
-ROUTER_IMAGE=eaj-router
+BACKEND_IMAGE=eap-backend
+FRONTEND_IMAGE=eap-frontend
+ROUTER_IMAGE=eap-router
 
 help:           ## Show this help.
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'

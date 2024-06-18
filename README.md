@@ -9,7 +9,7 @@ to lowest.
 
 This app was built with 3 containers:
 * Frontend written in JavaScript using the Vue framework
-* Backend written in Python using the Flask framework
+* Backend written in Java using the Spring framework
 * Router using nginx to allow the Frontend and Backend to 
   be on the same URL and avoid CORS issues.
 
@@ -39,26 +39,66 @@ enabled.
       repository by running `make login` and entering your credentials.
    2. Make the Docker image by running `make build`.
    3. Push the image to the repository by running `make push_docker`
-6. Upload the `fullstack.yaml` to the stage you created in step 1. 
-   If you followed those steps, the stage should be `@TUTORIAL_DB.DATA_SCHEMA.TUTORIAL_STAGE`. 
-   You can use SnowSQL, Snowsight, or any other method to `PUT` the file to the Stage.
-7. Create the service by executing
-   ```
-   CREATE SERVICE fullstack
-     IN COMPUTE POOL tutorial_compute_pool
-     FROM @tutorial_db.data_schema.tutorial_stage
-     SPEC = 'fullstack.yaml';
-   ```
-8. See that the service has started by executing `SHOW SERVICES IN COMPUTE POOL tutorial_compute_pool` 
-   and `SELECT system$get_service_status('fullstack')`.
-9. Find the public endpoint for the service by executing `SHOW ENDPOINTS IN SERVICE fullstack`.
-10. Grant permissions for folks to visit the Streamlit. You do this by granting 
-   `USAGE` on the service: `GRANT USAGE ON SERVICE fullstack TO ROLE some_role`, 
-   where you specify the role in place of `some_role`.
-11. Navigate to the endpoint and authenticate. Note, you must use a user whose
-   default role is _not_ `ACCOUNTADMIN`, `SECURITYADMIN`, or `ORGADMIN`.
-12. Enjoy!
+6. We are going to create 2 compute pools, one for the frontend and one for the 
+   backend.
+   ```sql
+   USE ROLE ACCOUNTADMIN;
 
+   CREATE COMPUTE POOL frontend_compute_pool
+      MIN_NODES = 1
+      MAX_NODES = 1
+      INSTANCE_FAMILY = CPU_X64_XS;
+   GRANT USAGE, MONITOR ON COMPUTE POOL frontend_compute_pool TO ROLE test_role;
+
+   CREATE COMPUTE POOL backend_compute_pool
+      MIN_NODES = 1
+      MAX_NODES = 1
+      INSTANCE_FAMILY = CPU_X64_XS;
+   GRANT USAGE, MONITOR ON COMPUTE POOL backend_compute_pool TO ROLE test_role;
+   ```
+7. The frontend includes loading the Snowflake logo from Wikipedia, 
+   just to illustrate loading something into the webpage from an external
+   source. In order to support this, we need to create an EXTERNAL
+   ACCESS INTEGRATION:
+   ```sql
+   USE ROLE ACCOUNTADMIN;
+
+   CREATE OR REPLACE NETWORK RULE nr_wiki
+      MODE = EGRESS
+      TYPE = HOST_PORT
+      VALUE_LIST = ('upload.wikimedia.org');
+
+   CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION eai_wiki
+      ALLOWED_NETWORK_RULES = ( nr_wiki )
+      ENABLED = true;
+   ```
+8. Create the backend service by executing
+   ```sql
+   CREATE SERVICE backend
+     IN COMPUTE POOL backend_compute_pool
+     FROM @tutorial_db.data_schema.tutorial_stage
+     SPECIFICATION_FILE = 'backend.yaml'
+     ;
+   ```
+9. Create the frontend service by executing
+   ```sql
+   CREATE SERVICE frontend
+     IN COMPUTE POOL frontend_compute_pool
+     FROM @tutorial_db.data_schema.tutorial_stage
+     SPECIFICATION_FILE = 'frontend.yaml'
+     EXTERNAL_ACCESS_INTEGRATIONS = ( EAI_WIKI )
+     ;
+   ```
+10. See that the services have started by executing `SHOW SERVICES IN COMPUTE POOL tutorial_compute_pool` 
+   and `SELECT system$get_service_status('backend')`
+   or `SELECT system$get_service_status('frontend')`.
+11. Find the public endpoint for the frontend service by executing `SHOW ENDPOINTS IN SERVICE frontend`.
+12. Grant permissions for folks to visit the Streamlit. You do this by granting 
+   the SERVICE ROLE: `GRANT SERVICE ROLE frontend!app TO ROLE some_role`, 
+   where you specify the role in place of `some_role`.
+13. Navigate to the endpoint and authenticate. Note, you must use a user whose
+   default role is _not_ `ACCOUNTADMIN`, `SECURITYADMIN`, or `ORGADMIN`.
+14. Enjoy!
 
 ## Local Testing
 This web app can be tested running locally. To do that, build the

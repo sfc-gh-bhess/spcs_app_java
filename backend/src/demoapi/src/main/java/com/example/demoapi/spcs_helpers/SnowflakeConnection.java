@@ -9,9 +9,13 @@ import java.util.Properties;
 
 public class SnowflakeConnection {    
     public static Connection snowflakeConnection() throws Exception {
+        Properties props = new Properties();        
+        return snowflakeConnection(props);
+    }
+
+    public static Connection snowflakeConnection(Properties props) throws Exception {
         Map<String,String> env = System.getenv();
 
-        Properties props = new Properties();        
         String url = "jdbc:snowflake://" + env.getOrDefault("SNOWFLAKE_ACCOUNT", null) + ".snowflakecomputing.com/";
         if (Files.exists(Paths.get("/snowflake/session/token"))) {
             props.put("CLIENT_SESSION_KEEP_ALIVE", true);
